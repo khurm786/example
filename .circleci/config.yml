@@ -1,0 +1,109 @@
+# Use the latest 2.1 version of CircleCI pipeline processing engine, see https://circleci.com/docs/2.0/configuration-reference/
+version: 2.1
+
+executors:
+  nodejs:
+    docker:
+      - image: cimg/node:lts
+    resource_class: small
+
+dir: &dir
+  working_directory: ~/app
+
+orbs:
+  cypress: cypress-io/cypress@3
+
+jobs:
+  # Checkouts the codebase, it's done as its own step so that it can be shared across
+  # different tasks for parallelism.
+  checkout:
+    <<: *dir
+    executor: nodejs
+    steps:
+      - checkout
+      - persist_to_workspace:
+          root: ~/app
+          paths:
+            - .
+
+
+  # Installs node modules, if the package-lock.json has NOT changed, then we can retrieve it from the cache.
+  install_deps:
+    <<: *dir
+    executor: nodejs
+    steps:
+      - checkout
+      - attach_workspace:
+          at: ~/app
+      - restore_cache:
+          keys:
+            - v1-npm-dependencies-{{ checksum "package-lock.json" }}
+            - v1-npm-dependencies-
+      - run:
+          name: 'Installing NPM dependencies'
+          command: npm install
+      - persist_to_workspace:
+          root: ~/app
+          paths:
+            - .
+      - save_cache:
+          key: v1-npm-dependencies-{{ checksum "package-lock.json" }}
+          paths:
+            - /root/.npm
+
+  # UnitTest
+  unit_tests:
+    <<: *dir
+    executor: nodejs
+    steps:
+      - attach_workspace:
+          at: ~/app
+      - run:
+          name: 'Running Unit Tests'
+          command: npm run ci:tests:unit
+
+  # ESLint
+  lint:
+    <<: *dir
+    executor: nodejs
+    steps:
+      - attach_workspace:
+          at: ~/app
+      - run:
+          name: 'Running ESLint'
+          command: npm run lint
+
+  # Cypress
+  run_cypress_tests:
+    <<: *dir
+    executor: cypress/default
+    steps:
+      - attach_workspace:
+          at: ~/app
+      - cypress/install:
+          install-browsers: false
+      - cypress/run-tests:
+          cypress-command: 'npm run ci:tests:cypress'
+          start-command: 'npm run ci:tests:start'
+
+workflows:
+  version: 2
+  build:
+    jobs:
+      - checkout
+      - install_deps:
+          requires:
+            - checkout
+      - unit_tests:
+          requires:
+            - checkout
+            - install_deps
+      - lint:
+          requires:
+            - checkout
+            - install_deps
+      - run_cypress_tests:
+          requires:
+            - checkout
+            - install_deps
+

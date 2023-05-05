@@ -1,0 +1,14 @@
+FROM node:18-alpine
+
+WORKDIR /app
+COPY package-lock.json package.json ./
+
+RUN npm install -P
+
+COPY .env.local .
+COPY . .
+RUN apk update
+
+EXPOSE 3000
+
+CMD ["npm", "run", "dev"]

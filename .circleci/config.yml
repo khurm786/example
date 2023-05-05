@@ -114,6 +114,6 @@ workflows:
           public-registry: false
           push-image: true
           registry-id: AWS_ECR_REGISTRY_ID
-          repo: consumer-web
+          repo: example
           repo-scan-on-push: true
           tag: 'latest,${CIRCLE_SHA1}'

@@ -12,6 +12,7 @@ dir: &dir
 
 orbs:
   cypress: cypress-io/cypress@3
+  aws-ecr: circleci/aws-ecr@8.1.2
 
 jobs:
   # Checkouts the codebase, it's done as its own step so that it can be shared across
@@ -25,7 +26,6 @@ jobs:
           root: ~/app
           paths:
             - .
-
 
   # Installs node modules, if the package-lock.json has NOT changed, then we can retrieve it from the cache.
   install_deps:
@@ -106,4 +106,14 @@ workflows:
           requires:
             - checkout
             - install_deps
-
+      - aws-ecr/build-and-push-image:
+          aws-access-key-id: AWS_ACCESS_KEY_ID
+          aws-secret-access-key: AWS_SECRET_ACCESS_KEY
+          dockerfile: Dockerfile
+          platform: linux/amd64
+          public-registry: false
+          push-image: true
+          registry-id: AWS_ECR_REGISTRY_ID
+          repo: consumer-web
+          repo-scan-on-push: true
+          tag: 'latest,${CIRCLE_SHA1}'

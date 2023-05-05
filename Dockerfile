@@ -10,6 +10,7 @@ COPY ./.env.production ./
 USER node
 
 RUN npm install -P
+RUN npx msw init ./public
 COPY --chown=node:node . .
 
 RUN npm run build

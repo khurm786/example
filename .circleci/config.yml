@@ -126,7 +126,7 @@ workflows:
             - checkout
             - install_deps
       - build_app:
-          filters:
+          # filters:
             # branches:
               # only:
                 # - develop
